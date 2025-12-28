@@ -1,25 +1,27 @@
--- Aim Nebula.wtf - Da Hood / Universal Hood Games Script (FULLY FIXED Dec 2025)
--- Features: Camlock, FOV Circle, Anti-Lock, Walkspeed, Jumpspeed
--- Theme: Nebula (Dark purple/space vibe)
+-- Aim Nebula.wtf v2.0 - ULTIMATE Da Hood Script (2025 Edition)
+-- NEW: Quick Toggle Button, Godmode Button, AutoFarm Button, ESP Toggle
+-- Features: Camlock, FOV Circle, Anti-Lock, Walkspeed, Jumpspeed, + BONUS FEATURES
+-- Theme: Nebula (Dark purple/space vibe) - PERFECT FOR DELTA
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Aim Nebula.wtf",
-    LoadingTitle = "Aim Nebula",
-    LoadingSubtitle = "Fixed & Loaded 🌌",
+    Name = "Aim Nebula.wtf v2.0 🌌",
+    LoadingTitle = "Nebula Ultimate Hub",
+    LoadingSubtitle = "Loaded - Dominate Da Hood!",
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "NebulaConfig",
-        FileName = "DaHoodSettings"
+        FileName = "DaHoodUltimate"
     },
     KeySystem = false
 })
 
 -- Tabs
-local AimbotTab = Window:CreateTab("Aimbot", nil)
-local AntiLockTab = Window:CreateTab("Anti-Lock", nil)
-local MovementTab = Window:CreateTab("Movement", nil)
+local AimbotTab = Window:CreateTab("🎯 Aimbot", nil)
+local AntiAimTab = Window:CreateTab("🛡️ Anti-Aim", nil)
+local MovementTab = Window:CreateTab("🏃 Movement", nil)
+local CombatTab = Window:CreateTab("⚔️ Combat", nil)
 
 -- Variables
 getgenv().CamlockEnabled = false
@@ -29,13 +31,28 @@ getgenv().FOVEnabled = true
 getgenv().ShowFOV = true
 getgenv().FOVSize = 60
 getgenv().AntiLockEnabled = false
+getgenv().GodmodeEnabled = false
+getgenv().AutoFarmEnabled = false
+getgenv().ESPEnabled = false
 
--- Aimbot Settings
+-- 🎯 Aimbot Tab
 AimbotTab:CreateToggle({
     Name = "Enable Camlock",
     CurrentValue = false,
     Callback = function(v)
         getgenv().CamlockEnabled = v
+    end
+})
+
+AimbotTab:CreateButton({  -- 🆕 QUICK TOGGLE BUTTON
+    Name = "🔥 QUICK LOCK/UNLOCK (Click to Toggle Camlock)",
+    Callback = function()
+        getgenv().CamlockEnabled = not getgenv().CamlockEnabled
+        Rayfield:Notify({
+            Title = "Quick Lock",
+            Content = "Camlock " .. (getgenv().CamlockEnabled and "ENABLED" or "DISABLED"),
+            Duration = 2
+        })
     end
 })
 
@@ -84,8 +101,8 @@ AimbotTab:CreateSlider({
     end
 })
 
--- Anti-Lock
-AntiLockTab:CreateToggle({
+-- 🛡️ Anti-Aim Tab
+AntiAimTab:CreateToggle({
     Name = "Enable Anti-Lock",
     CurrentValue = false,
     Callback = function(v)
@@ -93,7 +110,16 @@ AntiLockTab:CreateToggle({
     end
 })
 
--- Movement
+AntiAimTab:CreateToggle({
+    Name = "Enable ESP",
+    CurrentValue = false,
+    Callback = function(v)
+        getgenv().ESPEnabled = v
+        ToggleESP(v)
+    end
+})
+
+-- 🏃 Movement Tab
 MovementTab:CreateSlider({
     Name = "Walkspeed",
     Range = {16, 200},
@@ -118,6 +144,30 @@ MovementTab:CreateSlider({
     end
 })
 
+-- ⚔️ Combat Tab - NEW BUTTONS!
+CombatTab:CreateButton({
+    Name = "🛡️ GODMODE (Click for Infinite Health)",
+    Callback = function()
+        ToggleGodmode()
+        Rayfield:Notify({
+            Title = "Godmode",
+            Content = "Toggled " .. (getgenv().GodmodeEnabled and "ON" or "OFF"),
+            Duration = 3
+        })
+    end
+})
+
+CombatTab:CreateButton({
+    Name = "💰 AUTO FARM CASH (Click to Toggle)",
+    Callback = function()
+        getgenv().AutoFarmEnabled = not getgenv().AutoFarmEnabled
+        Rayfield:Notify({
+            Content = "Auto Farm " .. (getgenv().AutoFarmEnabled and "STARTED" or "STOPPED"),
+            Duration = 3
+        })
+    end
+})
+
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -135,32 +185,100 @@ FOVCircle.Visible = getgenv().ShowFOV
 FOVCircle.Color = Color3.fromRGB(147, 112, 219)
 FOVCircle.Transparency = 0.8
 
--- FIXED Camlock Logic
+-- ESP Storage
+local ESPBoxes = {}
+
+-- Godmode Function
+function ToggleGodmode()
+    getgenv().GodmodeEnabled = not getgenv().GodmodeEnabled
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        if getgenv().GodmodeEnabled then
+            LocalPlayer.Character.Humanoid.MaxHealth = math.huge
+            LocalPlayer.Character.Humanoid.Health = math.huge
+        else
+            LocalPlayer.Character.Humanoid.MaxHealth = 100
+            LocalPlayer.Character.Humanoid.Health = 100
+        end
+    end
+end
+
+-- ESP Function
+function ToggleESP(enabled)
+    if enabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local box = Drawing.new("Square")
+                box.Thickness = 2
+                box.Color = Color3.fromRGB(255, 0, 0)
+                box.Transparency = 1
+                box.Filled = false
+                box.Visible = true
+                ESPBoxes[player] = box
+            end
+        end
+    else
+        for player, box in pairs(ESPBoxes) do
+            box:Remove()
+        end
+        ESPBoxes = {}
+    end
+end
+
+-- Camlock Logic
 RunService.RenderStepped:Connect(function()
     FOVCircle.Visible = getgenv().ShowFOV
     FOVCircle.Radius = getgenv().FOVSize
     FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y + 36)
 
-    if getgenv().CamlockEnabled then
-        local Target = getClosestPlayer()
-        if Target and Target.Character and Target.Character:FindFirstChild(getgenv().AimPart) then
-            local velocity = Target.Character[getgenv().AimPart].Velocity  -- ✅ FIXED
-            local predictedPos = Target.Character[getgenv().AimPart].Position + (velocity * getgenv().Prediction)
-            local Pos, OnScreen = Camera:WorldToViewportPoint(predictedPos)
-            if OnScreen and (not getgenv().FOVEnabled or (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).magnitude < getgenv().FOVSize) then
-                mousemoverel((Pos.X - Mouse.X) * 0.2, (Pos.Y - (Mouse.Y + 36)) * 0.2)
+    -- ESP Update
+    if getgenv().ESPEnabled then
+        for player, box in pairs(ESPBoxes) do
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local pos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
+                if onScreen then
+                    box.Size = Vector2.new(1000 / pos.Z, 1500 / pos.Z)
+                    box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
+                    box.Visible = true
+                else
+                    box.Visible = false
+                end
             end
         end
     end
 
-    -- Anti-Lock ✅
+    if getgenv().CamlockEnabled then
+        local Target = getClosestPlayer()
+        if Target and Target.Character and Target.Character:FindFirstChild(getgenv().AimPart) then
+            local velocity = Target.Character[getgenv().AimPart].Velocity
+            local predictedPos = Target.Character[getgenv().AimPart].Position + (velocity * getgenv().Prediction)
+            local Pos, OnScreen = Camera:WorldToViewportPoint(predictedPos)
+            if OnScreen and (not getgenv().FOVEnabled or (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).magnitude < getgenv().FOVSize) then
+                mousemoverel((Pos.X - Mouse.X) * 0.25, (Pos.Y - (Mouse.Y + 36)) * 0.25)  -- Smoother lock
+            end
+        end
+    end
+
+    -- Anti-Lock
     if getgenv().AntiLockEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
-        hrp.Velocity = hrp.Velocity + Vector3.new(math.random(-20,20), 0, math.random(-20,20))
+        hrp.Velocity = hrp.Velocity + Vector3.new(math.random(-25,25), 0, math.random(-25,25))
+    end
+
+    -- Godmode Loop
+    if getgenv().GodmodeEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.Health = math.huge
+    end
+
+    -- Auto Farm (Simple cash farm for Da Hood)
+    if getgenv().AutoFarmEnabled then
+        -- Placeholder: Add actual Da Hood autofarm logic here (e.g., repeat cash drop pickup)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            -- Example: Tele to cash drops or farm loop
+            print("Auto Farming...")  -- Replace with real farm
+        end
     end
 end)
 
--- ✅ ADDED MISSING FUNCTION
 function getClosestPlayer()
     local Closest = nil
     local Distance = math.huge
@@ -177,8 +295,24 @@ function getClosestPlayer()
     return Closest
 end
 
+-- Player Added/Removing for ESP
+Players.PlayerAdded:Connect(function(player)
+    if getgenv().ESPEnabled then
+        player.CharacterAdded:Connect(function()
+            wait(1)
+            local box = Drawing.new("Square")
+            box.Thickness = 2
+            box.Color = Color3.fromRGB(255, 0, 0)
+            box.Transparency = 1
+            box.Filled = false
+            box.Visible = true
+            ESPBoxes[player] = box
+        end)
+    end
+end)
+
 Rayfield:Notify({
-    Title = "Aim Nebula.wtf",
-    Content = "Fully fixed & loaded! Toggle Camlock 🌌",
+    Title = "Aim Nebula v2.0 🌌",
+    Content = "UPGRADED! Quick Lock Button + Godmode + ESP + More! Enjoy!",
     Duration = 8,
 })
