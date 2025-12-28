@@ -1,0 +1,182 @@
+-- Aim Nebula.wtf - Da Hood / Universal Hood Games Script
+-- Executor: Delta (and most others)
+-- Features: Camlock, FOV Circle, Anti-Lock, Walkspeed, Jumpspeed
+-- Theme: Nebula (Dark purple/space vibe)
+
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Aim Nebula.wtf",
+    LoadingTitle = "Aim Nebula",
+    LoadingSubtitle = "by your request",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "NebulaConfig",
+        FileName = "DaHoodSettings"
+    },
+    KeySystem = false
+})
+
+-- Tabs
+local AimbotTab = Window:CreateTab("Aimbot", nil)
+local AntiLockTab = Window:CreateTab("Anti-Lock", nil)
+local MovementTab = Window:CreateTab("Movement", nil)
+
+-- Variables
+getgenv().CamlockEnabled = false
+getgenv().Prediction = 0.145
+getgenv().AimPart = "HumanoidRootPart"
+getgenv().FOVEnabled = true
+getgenv().ShowFOV = true
+getgenv().FOVSize = 60
+getgenv().AntiLockEnabled = false
+getgenv().WalkSpeed = 16
+getgenv().JumpPower = 50
+
+-- Aimbot Settings
+AimbotTab:CreateToggle({
+    Name = "Enable Camlock",
+    CurrentValue = false,
+    Callback = function(v)
+        getgenv().CamlockEnabled = v
+    end
+})
+
+AimbotTab:CreateSlider({
+    Name = "Prediction",
+    Range = {0.12, 0.2},
+    Increment = 0.001,
+    CurrentValue = 0.145,
+    Callback = function(v)
+        getgenv().Prediction = v
+    end
+})
+
+AimbotTab:CreateDropdown({
+    Name = "Aim Part",
+    Options = {"Head", "HumanoidRootPart", "UpperTorso", "LowerTorso"},
+    CurrentOption = "HumanoidRootPart",
+    Callback = function(v)
+        getgenv().AimPart = v
+    end
+})
+
+AimbotTab:CreateToggle({
+    Name = "FOV Check",
+    CurrentValue = true,
+    Callback = function(v)
+        getgenv().FOVEnabled = v
+    end
+})
+
+AimbotTab:CreateToggle({
+    Name = "Show FOV Circle",
+    CurrentValue = true,
+    Callback = function(v)
+        getgenv().ShowFOV = v
+    end
+})
+
+AimbotTab:CreateSlider({
+    Name = "FOV Size",
+    Range = {10, 300},
+    Increment = 5,
+    CurrentValue = 60,
+    Callback = function(v)
+        getgenv().FOVSize = v
+    end
+})
+
+-- Anti-Lock
+AntiLockTab:CreateToggle({
+    Name = "Enable Anti-Lock",
+    CurrentValue = false,
+    Callback = function(v)
+        getgenv().AntiLockEnabled = v
+        if v then
+            Notify("Anti-Lock Enabled")
+        else
+            Notify("Anti-Lock Disabled")
+        end
+    end
+})
+
+-- Movement
+MovementTab:CreateSlider({
+    Name = "Walkspeed",
+    Range = {16, 200},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(v)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
+    end
+})
+
+MovementTab:CreateSlider({
+    Name = "Jump Power",
+    Range = {50, 300},
+    Increment = 1,
+    CurrentValue = 50,
+    Callback = function(v)
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = v
+    end
+})
+
+-- Camlock + FOV Circle Logic
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 2
+FOVCircle.NumSides = 100
+FOVCircle.Radius = getgenv().FOVSize
+FOVCircle.Filled = false
+FOVCircle.Visible = getgenv().ShowFOV
+FOVCircle.Color = Color3.fromRGB(147, 112, 219) -- Nebula purple
+FOVCircle.Transparency = 0.8
+
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Visible = getgenv().ShowFOV
+    FOVCircle.Radius = getgenv().FOVSize
+    FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y + 36)
+
+    if getgenv().CamlockEnabled and Mouse.Target then
+        local Target = getClosestPlayer()
+        if Target and Target.Character and Target.Character:FindFirstChild(getgenv().AimPart) then
+            local Pos, OnScreen = Camera:WorldToViewportPoint(Target.Character[getgenv().AimPart].Position + (Target.Character[getgenv().AimPart].Velocity * getgenv().Prediction))
+            if OnScreen and (getgenv().FOVEnabled == false or (Vector2.new(Mouse.X, Mouse.Y + 36) - Vector2.new(Pos.X, Pos.Y)).Magnitude < getgenv().FOVSize) then
+                mousemoverel((Pos.X - Mouse.X) * 0.2, (Pos.Y - Mouse.Y - 36) * 0.2)
+            end
+        end
+    end
+
+    -- Anti-Lock (randomizes velocity slightly to break resolvers)
+    if getgenv().AntiLockEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.Velocity = LocalPlayer.Character.HumanoidRootPart.Velocity + Vector3.new(math.random(-15,15), 0, math.random(-15,15))
+    end
+end)
+
+function getClosestPlayer()
+    local Closest, Distance = nil, math.huge
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid.Health > 0 then
+            local Root = Player.Character.HumanoidRootPart
+            local Pos, OnScreen = Camera:WorldToViewportPoint(Root.Position)
+            local Mag = (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).Magnitude
+            if Mag < Distance and (getgenv().FOVEnabled == false or Mag < getgenv().FOVSize) then
+                Closest = Player
+                Distance = Mag
+            end
+        end
+    end
+    return Closest
+end
+
+Rayfield:Notify({
+    Title = "Aim Nebula.wtf",
+    Content = "Script loaded successfully! Enjoy the nebula theme.",
+    Duration = 6,
+})
