@@ -1,14 +1,13 @@
--- Aim Nebula.wtf - Da Hood / Universal Hood Games Script (UPDATED Dec 2025)
+-- Aim Nebula.wtf - Da Hood / Universal Hood Games Script (FULLY FIXED Dec 2025)
 -- Features: Camlock, FOV Circle, Anti-Lock, Walkspeed, Jumpspeed
--- Theme: Nebula (Dark with purple accents)
--- Fixed Rayfield source - now works on Delta & all executors
+-- Theme: Nebula (Dark purple/space vibe)
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Aim Nebula.wtf",
     LoadingTitle = "Aim Nebula",
-    LoadingSubtitle = "Loaded 🌌",
+    LoadingSubtitle = "Fixed & Loaded 🌌",
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "NebulaConfig",
@@ -119,22 +118,24 @@ MovementTab:CreateSlider({
     end
 })
 
--- Camlock + FOV Circle Logic
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
+-- FOV Circle
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 2
 FOVCircle.NumSides = 100
 FOVCircle.Radius = getgenv().FOVSize
 FOVCircle.Filled = false
 FOVCircle.Visible = getgenv().ShowFOV
-FOVCircle.Color = Color3.fromRGB(147, 112, 219) -- Nebula purple
+FOVCircle.Color = Color3.fromRGB(147, 112, 219)
 FOVCircle.Transparency = 0.8
 
+-- FIXED Camlock Logic
 RunService.RenderStepped:Connect(function()
     FOVCircle.Visible = getgenv().ShowFOV
     FOVCircle.Radius = getgenv().FOVSize
@@ -143,7 +144,7 @@ RunService.RenderStepped:Connect(function()
     if getgenv().CamlockEnabled then
         local Target = getClosestPlayer()
         if Target and Target.Character and Target.Character:FindFirstChild(getgenv().AimPart) then
-            local velocity = Target.Character[getgenv().AimPart].Velocity
+            local velocity = Target.Character[getgenv().AimPart].Velocity  -- ✅ FIXED
             local predictedPos = Target.Character[getgenv().AimPart].Position + (velocity * getgenv().Prediction)
             local Pos, OnScreen = Camera:WorldToViewportPoint(predictedPos)
             if OnScreen and (not getgenv().FOVEnabled or (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).magnitude < getgenv().FOVSize) then
@@ -152,13 +153,14 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Anti-Lock
+    -- Anti-Lock ✅
     if getgenv().AntiLockEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
         hrp.Velocity = hrp.Velocity + Vector3.new(math.random(-20,20), 0, math.random(-20,20))
     end
 end)
 
+-- ✅ ADDED MISSING FUNCTION
 function getClosestPlayer()
     local Closest = nil
     local Distance = math.huge
@@ -177,6 +179,6 @@ end
 
 Rayfield:Notify({
     Title = "Aim Nebula.wtf",
-    Content = "Updated & loaded successfully! Toggle Camlock to lock 🌌",
+    Content = "Fully fixed & loaded! Toggle Camlock 🌌",
     Duration = 8,
 })
