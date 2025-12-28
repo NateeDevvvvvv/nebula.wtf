@@ -1,14 +1,14 @@
--- Aim Nebula.wtf - Da Hood / Universal Hood Games Script (FIXED 2025)
+-- Aim Nebula.wtf - Da Hood / Universal Hood Games Script (UPDATED Dec 2025)
 -- Features: Camlock, FOV Circle, Anti-Lock, Walkspeed, Jumpspeed
--- Theme: Nebula (Dark purple/space vibe)
--- Fixed Rayfield load for current executors
+-- Theme: Nebula (Dark with purple accents)
+-- Fixed Rayfield source - now works on Delta & all executors
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Aim Nebula.wtf",
     LoadingTitle = "Aim Nebula",
-    LoadingSubtitle = "Fixed & Loaded 🌌",
+    LoadingSubtitle = "Loaded 🌌",
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "NebulaConfig",
@@ -143,4 +143,40 @@ RunService.RenderStepped:Connect(function()
     if getgenv().CamlockEnabled then
         local Target = getClosestPlayer()
         if Target and Target.Character and Target.Character:FindFirstChild(getgenv().AimPart) then
-            local velocity = Target.Character[getgenv().AimPart
+            local velocity = Target.Character[getgenv().AimPart].Velocity
+            local predictedPos = Target.Character[getgenv().AimPart].Position + (velocity * getgenv().Prediction)
+            local Pos, OnScreen = Camera:WorldToViewportPoint(predictedPos)
+            if OnScreen and (not getgenv().FOVEnabled or (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).magnitude < getgenv().FOVSize) then
+                mousemoverel((Pos.X - Mouse.X) * 0.2, (Pos.Y - (Mouse.Y + 36)) * 0.2)
+            end
+        end
+    end
+
+    -- Anti-Lock
+    if getgenv().AntiLockEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        hrp.Velocity = hrp.Velocity + Vector3.new(math.random(-20,20), 0, math.random(-20,20))
+    end
+end)
+
+function getClosestPlayer()
+    local Closest = nil
+    local Distance = math.huge
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid.Health > 0 then
+            local Pos, OnScreen = Camera:WorldToViewportPoint(Player.Character.HumanoidRootPart.Position)
+            local Mag = (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).magnitude
+            if OnScreen and Mag < Distance and (not getgenv().FOVEnabled or Mag < getgenv().FOVSize) then
+                Closest = Player
+                Distance = Mag
+            end
+        end
+    end
+    return Closest
+end
+
+Rayfield:Notify({
+    Title = "Aim Nebula.wtf",
+    Content = "Updated & loaded successfully! Toggle Camlock to lock 🌌",
+    Duration = 8,
+})
