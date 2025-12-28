@@ -93,11 +93,6 @@ AntiLockTab:CreateToggle({
     CurrentValue = false,
     Callback = function(v)
         getgenv().AntiLockEnabled = v
-        if v then
-            Notify("Anti-Lock Enabled")
-        else
-            Notify("Anti-Lock Disabled")
-        end
     end
 })
 
@@ -108,7 +103,9 @@ MovementTab:CreateSlider({
     Increment = 1,
     CurrentValue = 16,
     Callback = function(v)
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
+        if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
+        end
     end
 })
 
@@ -118,7 +115,9 @@ MovementTab:CreateSlider({
     Increment = 1,
     CurrentValue = 50,
     Callback = function(v)
-        game.Players.LocalPlayer.Character.Humanoid.JumpPower = v
+        if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+            game.Players.LocalPlayer.Character.Humanoid.JumpPower = v
+        end
     end
 })
 
@@ -143,30 +142,34 @@ RunService.RenderStepped:Connect(function()
     FOVCircle.Radius = getgenv().FOVSize
     FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y + 36)
 
-    if getgenv().CamlockEnabled and Mouse.Target then
+    if getgenv().CamlockEnabled then
         local Target = getClosestPlayer()
         if Target and Target.Character and Target.Character:FindFirstChild(getgenv().AimPart) then
-            local Pos, OnScreen = Camera:WorldToViewportPoint(Target.Character[getgenv().AimPart].Position + (Target.Character[getgenv().AimPart].Velocity * getgenv().Prediction))
-            if OnScreen and (getgenv().FOVEnabled == false or (Vector2.new(Mouse.X, Mouse.Y + 36) - Vector2.new(Pos.X, Pos.Y)).Magnitude < getgenv().FOVSize) then
-                mousemoverel((Pos.X - Mouse.X) * 0.2, (Pos.Y - Mouse.Y - 36) * 0.2)
+            local velocity = Target.Character[getgenv().AimPart].Velocity
+            local predictedPos = Target.Character[getgenv().AimPart].Position + (velocity * getgenv().Prediction)
+            local Pos, OnScreen = Camera:WorldToViewportPoint(predictedPos)
+            if OnScreen and (not getgenv().FOVEnabled or (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).magnitude < getgenv().FOVSize) then
+                mousemoverel((Pos.X - Mouse.X) * 0.2, (Pos.Y - (Mouse.Y + 36)) * 0.2)
             end
         end
     end
 
-    -- Anti-Lock (randomizes velocity slightly to break resolvers)
+    -- Anti-Lock
     if getgenv().AntiLockEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.Velocity = LocalPlayer.Character.HumanoidRootPart.Velocity + Vector3.new(math.random(-15,15), 0, math.random(-15,15))
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        hrp.Velocity = hrp.Velocity + Vector3.new(math.random(-20,20), 0, math.random(-20,20))
     end
 end)
 
 function getClosestPlayer()
-    local Closest, Distance = nil, math.huge
+    local Closest = nil
+    local Distance = math.huge
     for _, Player in pairs(Players:GetPlayers()) do
         if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid.Health > 0 then
             local Root = Player.Character.HumanoidRootPart
-            local Pos, OnScreen = Camera:WorldToViewportPoint(Root.Position)
-            local Mag = (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).Magnitude
-            if Mag < Distance and (getgenv().FOVEnabled == false or Mag < getgenv().FOVSize) then
+            local Pos = Camera:WorldToViewportPoint(Root.Position)
+            local Mag = (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Mouse.X, Mouse.Y + 36)).magnitude
+            if Mag < Distance and (not getgenv().FOVEnabled or Mag < getgenv().FOVSize) then
                 Closest = Player
                 Distance = Mag
             end
@@ -177,6 +180,6 @@ end
 
 Rayfield:Notify({
     Title = "Aim Nebula.wtf",
-    Content = "Script loaded successfully! Enjoy the nebula theme.",
-    Duration = 6,
+    Content = "Loaded! Toggle Camlock and enjoy 🌌",
+    Duration = 8,
 })
